@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
+ 
 <!-- The following code has been developed by students and/or researchers of the Freshman Research Initiative, DIY Diagnostics Stream at The University of Texas at Austin.  This code is shared for demonstration purposes and should not be considered a product -- it is for entertainment purposes only.  Any user of this code does so at their own risk. Members of the DIY Stream, FRI, and The University of Texas system are not liable for anything related to this code.
  
   THIS CODE SHOULD NOT BE USED TO DIAGNOSE ANY KIND OF MEDICAL CONDITION.
@@ -14,21 +14,14 @@
  
   Authors in chronological order of contribution:
   Author 1: Timothy E. Riedel
-  Author 2: Christine Davis 
-  Author 3: Isis Maldonado Nino
-  Author 4: Matthew Kim
-  Author 5: Hasset Mekuria
-  Author 6: Grayson Bates
-  Author 7: Riddish B
+  Author 2: Christine Davis
 -->
-
-<!DOCTYPE html>
-<html lang="en">
+ 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAMP Color Diagnostic App</title>
-
+ 
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -37,24 +30,24 @@
             margin: 20px;
             padding: 20px;
         }
-
+ 
         h1 {
             color: #333;
             margin-bottom: 10px;
         }
-
+ 
         p {
             color: #666;
             font-size: 16px;
             margin-bottom: 20px;
         }
-
+ 
         input[type="file"] {
             padding: 10px;
             margin: 10px 0;
             cursor: pointer;
         }
-
+ 
         button {
             background-color: #4CAF50;
             color: white;
@@ -65,11 +58,11 @@
             cursor: pointer;
             margin: 10px;
         }
-
+ 
         button:hover {
             background-color: #45a049;
         }
-
+ 
         #preview {
             margin-top: 20px;
             max-width: 400px;
@@ -77,7 +70,7 @@
             border-radius: 5px;
             display: none;
         }
-
+ 
         #result {
             margin-top: 30px;
             font-size: 24px;
@@ -87,7 +80,7 @@
             border-radius: 5px;
             min-height: 40px;
         }
-
+ 
         .debug-info {
             margin-top: 20px;
             padding: 10px;
@@ -98,60 +91,78 @@
         }
     </style>
 </head>
-
+ 
 <body>
-
+ 
     <h1>LAMP Color Diagnostic App</h1>
     <p>Upload an image of your LAMP test to determine if it is POSITIVE (yellow) or NEGATIVE (pink).</p>
-
+ 
     <input type="file" id="imageInput" accept="image/*">
     <br>
     <button onclick="analyzeImage()">Analyze Image</button>
-
+ 
     <br>
     <img id="preview" alt="Image Preview">
-
+ 
     <div id="result"></div>
     <div class="debug-info" id="debugInfo"></div>
-
+ 
     <script>
-
+ 
         const imageInput = document.getElementById("imageInput");
         const preview = document.getElementById("preview");
         const resultDiv = document.getElementById("result");
         const debugInfo = document.getElementById("debugInfo");
-
+ 
         let uploadedImage = null;
-
+ 
         // Event listener for image upload
         imageInput.addEventListener("change", function(event) {
             const file = event.target.files[0];
-
+ 
             if (file) {
                 const reader = new FileReader();
-
+ 
                 reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.style.display = "block";
-
-                    // Create image object for analysis
+ 
                     uploadedImage = new Image();
                     uploadedImage.src = e.target.result;
                 };
-
+ 
                 reader.readAsDataURL(file);
             }
         });
-
+ 
+        // Convert RGB to HSV
+        // Returns { h: 0-360, s: 0-1, v: 0-1 }
+        function rgbToHsv(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const d = max - min;
+ 
+            let h = 0;
+            const s = max === 0 ? 0 : d / max;
+            const v = max;
+ 
+            if (d !== 0) {
+                if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+                else if (max === g) h = ((b - r) / d + 2) / 6;
+                else h = ((r - g) / d + 4) / 6;
+            }
+ 
+            return { h: h * 360, s: s, v: v };
+        }
+ 
         // Main analysis function
         function analyzeImage() {
-
             if (!uploadedImage) {
                 alert("Please upload an image first!");
                 return;
             }
-
-            // Wait for image to fully load
+ 
             if (!uploadedImage.complete) {
                 uploadedImage.onload = function() {
                     performAnalysis();
@@ -160,65 +171,92 @@
                 performAnalysis();
             }
         }
-
+ 
         function performAnalysis() {
-            // Create invisible canvas
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
-
-            // Set canvas size to match image
+ 
             canvas.width = uploadedImage.width;
             canvas.height = uploadedImage.height;
-
-            // Draw image onto canvas
+ 
             ctx.drawImage(uploadedImage, 0, 0);
-
-            // Extract pixel data
+ 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
-
-            // Calculate average color values
+ 
             let totalR = 0;
             let totalG = 0;
             let totalB = 0;
-
-            let pixelCount = data.length / 4;
-
-            // Loop through all pixels and sum RGB values
+            let yellowCount = 0;
+            let pinkCount = 0;
+ 
+            const pixelCount = data.length / 4;
+ 
+            // Loop through all pixels
             for (let i = 0; i < data.length; i += 4) {
-                totalR += data[i];     // Red
-                totalG += data[i + 1]; // Green
-                totalB += data[i + 2]; // Blue
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+ 
+                totalR += r;
+                totalG += g;
+                totalB += b;
+ 
+                // Convert pixel to HSV and vote on color
+                const hsv = rgbToHsv(r, g, b);
+ 
+                // Only count pixels that are sufficiently saturated and bright
+                // (ignore near-white, near-black, and near-gray pixels)
+                if (hsv.s > 0.15 && hsv.v > 0.2) {
+                    // Yellow hue range: ~30 to 90 degrees
+                    if (hsv.h >= 30 && hsv.h <= 90) {
+                        yellowCount++;
+                    }
+                    // Pink/magenta hue range: ~300 to 360 and 0 to 30 degrees
+                    if (hsv.h >= 300 || hsv.h <= 30) {
+                        pinkCount++;
+                    }
+                }
             }
-
-            // Calculate average color values
+ 
             const avgR = Math.round(totalR / pixelCount);
             const avgG = Math.round(totalG / pixelCount);
             const avgB = Math.round(totalB / pixelCount);
-
+ 
+            const avgHsv = rgbToHsv(avgR, avgG, avgB);
+            const h = avgHsv.h;
+            const s = avgHsv.s;
+ 
             console.log("Average RGB:", avgR, avgG, avgB);
-            debugInfo.innerText = `Debug Info - Average RGB: R=${avgR}, G=${avgG}, B=${avgB}`;
-
-            // Improved color detection logic
+            console.log("Average HSV:", Math.round(h), "deg,", (s * 100).toFixed(0), "% sat");
+            console.log("Yellow pixels:", yellowCount, "| Pink pixels:", pinkCount);
+ 
+            debugInfo.innerText = `Debug Info — Avg RGB: R=${avgR}, G=${avgG}, B=${avgB} | Avg hue: ${Math.round(h)}° sat: ${(s * 100).toFixed(0)}% | Yellow pixels: ${yellowCount} | Pink pixels: ${pinkCount}`;
+ 
+            // Color classification using hue and pixel voting
+            const isYellowHue = h >= 30 && h <= 90 && s > 0.15;
+            const isPinkHue = (h >= 300 || h <= 30) && s > 0.10;
+            const yellowDominant = yellowCount > pinkCount * 1.5;
+            const pinkDominant = pinkCount > yellowCount * 1.5;
+ 
             let resultText = "";
-
-            // Yellow detection: Red and Green are high, Blue is low
-            if (avgR > 150 && avgG > 150 && avgB < 150) {
+ 
+            if ((isYellowHue || yellowDominant) && !isPinkHue) {
                 resultText = "🟡 POSITIVE: Sample appears YELLOW (amplification detected)";
-            }
-            // Pink detection: Red and Blue are high, Green is low
-            else if (avgR > 150 && avgB > 150 && avgG < 150) {
+            } else if ((isPinkHue || pinkDominant) && !isYellowHue) {
                 resultText = "🔴 NEGATIVE: Sample appears PINK (no amplification)";
-            }
-            // If differences aren't clear enough
-            else {
+            } else if (yellowCount > pinkCount) {
+                resultText = "🟡 LIKELY POSITIVE: Color suggests yellow, but result is ambiguous — please retest to confirm";
+            } else if (pinkCount > yellowCount) {
+                resultText = "🔴 LIKELY NEGATIVE: Color suggests pink, but result is ambiguous — please retest to confirm";
+            } else {
                 resultText = "⚠️ UNCERTAIN: Color is ambiguous, please retest";
             }
-
+ 
             resultDiv.innerText = resultText;
         }
-
+ 
     </script>
-
+ 
 </body>
 </html>
