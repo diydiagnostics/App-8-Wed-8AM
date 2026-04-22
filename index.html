@@ -16,6 +16,11 @@ The purpose of this code is to upload an image of LAMP tubes and determine if th
   Authors in chronological order of contribution:
   Author 1: Timothy E. Riedel
   Author 2: Christine Davis
+  Author 3: Haset Mekuria
+  Author 4: Grayson Bates
+  Author 5: Riddhish Bommineni
+  Author 6: Isis Maldonado-Nino
+  Author 7: Matthew Kim
 -->
  
 <head>
@@ -96,20 +101,20 @@ The purpose of this code is to upload an image of LAMP tubes and determine if th
 <body>
  
     <h1>LAMP Color Diagnostic App</h1>
-    <p>Upload an image of your LAMP test to determine if it is POSITIVE (yellow) or NEGATIVE (pink).</p>
+    <p>Upload an image of your LAMP test to determine if it is POSITIVE (yellow) or NEGATIVE (pink).</p> <!-- Main title displayed at the top of the page -->
  
-    <input type="file" id="imageInput" accept="image/*">
-    <br>
-    <button onclick="analyzeImage()">Analyze Image</button>
+    <input type="file" id="imageInput" accept="image/*"> <!-- File upload button that lets the user select an image (only image files allowed) -->
+    <br> <!-- Adds a line break (spacing) -->
+    <button onclick="analyzeImage()">Analyze Image</button> <!-- Button that runs the analyzeImage() function when clicked -->
  
-    <br>
-    <img id="preview" alt="Image Preview">
+    <br><!-- Adds a line break (spacing) -->
+    <img id="preview" alt="Image Preview"> <!-- Image element that will display the uploaded image preview -->
  
-    <div id="result"></div>
-    <div class="debug-info" id="debugInfo"></div>
+    <div id="result"></div> <!-- Empty container where the result (positive/negative) will be shown -->
+    <div class="debug-info" id="debugInfo"></div> <!-- Extra area for debugging info (like color values, helpful for testing) -->
  
     <script>
- 
+        // Get references to elements in the HTML so we can interact with them in JS
         const imageInput = document.getElementById("imageInput");
         const preview = document.getElementById("preview");
         const resultDiv = document.getElementById("result");
@@ -117,74 +122,74 @@ The purpose of this code is to upload an image of LAMP tubes and determine if th
  
         let uploadedImage = null;
  
-        // Event listener for image upload
+        // Event listener: runs whenever the user selects a file
         imageInput.addEventListener("change", function(event) {
-            const file = event.target.files[0];
- 
+            const file = event.target.files[0]; // Get the first selected file
+        // Only continue if a file was actually selected
             if (file) {
-                const reader = new FileReader();
+                const reader = new FileReader(); // Reads file data into memory
  
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = "block";
+                reader.onload = function(e) { // This runs after the file is fully read
+                    preview.src = e.target.result; // Show image preview on screen
+                    preview.style.display = "block";  // Make sure image is visible
  
-                    uploadedImage = new Image();
-                    uploadedImage.src = e.target.result;
+                    uploadedImage = new Image();   // Create a new Image object for pixel analysis later
+                    uploadedImage.src = e.target.result; // Set image source to uploaded file
                 };
  
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(file);  // Convert the file into a format (base64 URL) we can use/display
+
             }
         });
  
         // Convert RGB to HSV
         // Returns { h: 0-360, s: 0-1, v: 0-1 }
-        function rgbToHsv(r, g, b) {
-            r /= 255; g /= 255; b /= 255;
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            const d = max - min;
+        function rgbToHsv(r, g, b) { // Convert RGB (red, green, blue) values into HSV (hue, saturation, value)
+            r /= 255; g /= 255; b /= 255; // Normalize RGB values from 0–255 to 0–1
+            const max = Math.max(r, g, b); // Brightest channel
+            const min = Math.min(r, g, b); // Darkest channel
+            const d = max - min; // Difference (used for saturation + hue)
  
-            let h = 0;
-            const s = max === 0 ? 0 : d / max;
-            const v = max;
+            let h = 0; //Hue
+            const s = max === 0 ? 0 : d / max; // Saturation (color intensity)
+            const v = max; // Value (brightness)
  
-            if (d !== 0) {
-                if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-                else if (max === g) h = ((b - r) / d + 2) / 6;
-                else h = ((r - g) / d + 4) / 6;
+            if (d !== 0) {             // Calculate hue only if there is color difference, // (if d = 0, the color is gray → no hue)
+                if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6; //if red is the strongest color channel, then add 6 to make sure hue not negative
+                else if (max === g) h = ((b - r) / d + 2) / 6; // if strongest color is green , add 2 to make sure hue not negative
+                else h = ((r - g) / d + 4) / 6; // if blue is strongest, add 4 to make sure hue not negative
             }
  
-            return { h: h * 360, s: s, v: v };
+            return { h: h * 360, s: s, v: v }; // Convert hue to degrees (0–360)
         }
  
-        // Main analysis function
-        function analyzeImage() {
+        function analyzeImage() { // function for when image is uploaded
             if (!uploadedImage) {
                 alert("Please upload an image first!");
-                return;
+                return; // if user doesnt upload image, then "please upload image" will appear
             }
  
             if (!uploadedImage.complete) {
-                uploadedImage.onload = function() {
-                    performAnalysis();
+                uploadedImage.onload = function() { //waits for image to load
+                    performAnalysis(); //analyzes if image when image is loaded
                 };
             } else {
-                performAnalysis();
+                performAnalysis();//analyze right away if image is fully loaded
             }
         }
  
-        function performAnalysis() {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
+        function performAnalysis() {//actual analysis function
+            const canvas = document.createElement("canvas"); //calls for canvas
+            const ctx = canvas.getContext("2d");//makes it so that you add stuff to the canvas
  
-            canvas.width = uploadedImage.width;
-            canvas.height = uploadedImage.height;
+            canvas.width = uploadedImage.width;//so canvas width=image width
+            canvas.height = uploadedImage.height;//so canvas height=image height
  
-            ctx.drawImage(uploadedImage, 0, 0);
+            ctx.drawImage(uploadedImage, 0, 0);//puts image into canvas
  
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
- 
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);// get RGBA data from image
+            const data = imageData.data;//create variable for imagedata 
+            // Variables to track total color and classification counts
             let totalR = 0;
             let totalG = 0;
             let totalB = 0;
@@ -198,7 +203,7 @@ The purpose of this code is to upload an image of LAMP tubes and determine if th
                 const r = data[i];
                 const g = data[i + 1];
                 const b = data[i + 2];
- 
+            // Add to totals for average color calculation
                 totalR += r;
                 totalG += g;
                 totalB += b;
@@ -219,29 +224,31 @@ The purpose of this code is to upload an image of LAMP tubes and determine if th
                     }
                 }
             }
- 
+            // Calculate average RGB color of entire image
             const avgR = Math.round(totalR / pixelCount);
             const avgG = Math.round(totalG / pixelCount);
             const avgB = Math.round(totalB / pixelCount);
- 
+            // Convert average color to HSV
             const avgHsv = rgbToHsv(avgR, avgG, avgB);
             const h = avgHsv.h;
             const s = avgHsv.s;
- 
+            // Log useful debugging info in console
             console.log("Average RGB:", avgR, avgG, avgB);
             console.log("Average HSV:", Math.round(h), "deg,", (s * 100).toFixed(0), "% sat");
             console.log("Yellow pixels:", yellowCount, "| Pink pixels:", pinkCount);
- 
+
+            // Show debug info on screen for easier troubleshooting
             debugInfo.innerText = `Debug Info — Avg RGB: R=${avgR}, G=${avgG}, B=${avgB} | Avg hue: ${Math.round(h)}° sat: ${(s * 100).toFixed(0)}% | Yellow pixels: ${yellowCount} | Pink pixels: ${pinkCount}`;
  
-            // Color classification using hue and pixel voting
+            // Determine color classification using BOTH average hue and pixel voting
             const isYellowHue = h >= 30 && h <= 90 && s > 0.15;
             const isPinkHue = (h >= 300 || h <= 30) && s > 0.10;
+            // Check which color dominates significantly
             const yellowDominant = yellowCount > pinkCount * 1.5;
             const pinkDominant = pinkCount > yellowCount * 1.5;
  
             let resultText = "";
- 
+            // Final decision logic with fallback for uncertain cases that are harder to determine
             if ((isYellowHue || yellowDominant) && !isPinkHue) {
                 resultText = "🟡 POSITIVE: Sample appears YELLOW (amplification detected)";
             } else if ((isPinkHue || pinkDominant) && !isYellowHue) {
@@ -253,11 +260,11 @@ The purpose of this code is to upload an image of LAMP tubes and determine if th
             } else {
                 resultText = "⚠️ UNCERTAIN: Color is ambiguous, please retest";
             }
- 
+            // Display final result to the user
             resultDiv.innerText = resultText;
         }
  
-    </script>
+    </script> <!-- completes Java Script -->
  
 </body>
 </html>
